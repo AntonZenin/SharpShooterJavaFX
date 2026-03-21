@@ -13,7 +13,7 @@ public class HelloApplication extends Application {
         FXMLLoader fxmlLoader = new FXMLLoader(
                 HelloApplication.class.getResource("game-view.fxml")
         );
-        // Размер окна: 850 ширина, 520 высота
+        // экран 900 на 560
         Scene scene = new Scene(fxmlLoader.load(), 900, 560);
         stage.setTitle("Меткий стрелок");
         stage.setResizable(false);
