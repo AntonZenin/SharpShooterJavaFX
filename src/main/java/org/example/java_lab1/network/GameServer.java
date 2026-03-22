@@ -34,6 +34,8 @@ public class GameServer {
     private volatile boolean gameRunning = false;
     private Thread gameThread;
 
+    private volatile boolean gamePaused = false;
+
     // -------------------------------------------------------
     // Запуск сервера
     // -------------------------------------------------------
@@ -95,7 +97,7 @@ public class GameServer {
             for (ClientHandler c : clients) {
                 c.score = 0;
                 c.shots = 0;
-                c.ready = false; // сбросим чтобы после победы снова нужно было подтвердить
+                //c.ready = false; // сбросим чтобы после победы снова нужно было подтвердить
             }
         }
 
@@ -188,6 +190,9 @@ public class GameServer {
                     gameRunning = false;
                     System.out.println("Победитель: " + c.name);
                     broadcast(new Message(MessageType.GAME_OVER, c.name));
+                    for (ClientHandler p : clients) {
+                        p.ready = false;
+                    }
                     return;
                 }
             }
@@ -275,6 +280,21 @@ public class GameServer {
             }
         }
 
+        private void resumeGame() {
+            gameRunning = true;
+            System.out.println("Игра возобновлена");
+
+            gameThread = new Thread(() -> {
+                while(gameRunning) {
+                    tick();
+                    try { Thread.sleep(10); }
+                    catch (InterruptedException e) { return; }
+                }
+            });
+            gameThread.setDaemon(true);
+            gameThread.start();
+        }
+
         // Разбираем входящее сообщение от клиента
         private void handleMessage(String json) {
             Message msg = gson.fromJson(json, Message.class);
@@ -302,7 +322,14 @@ public class GameServer {
                 case READY -> {
                     ready = true;
                     System.out.println(name + " готов");
-                    checkAllReady();
+
+                    if (gamePaused) {
+                        gamePaused = false;
+                        resumeGame();
+                    } else {
+                        checkAllReady();
+                    }
+
                 }
 
                 case SHOOT -> {
@@ -318,6 +345,7 @@ public class GameServer {
                 case PAUSE -> {
                     if (!gameRunning) return;
                     gameRunning = false;
+                    gamePaused = true;
                     ready = false; // чтобы снять паузу нужно снова нажать READY
                     System.out.println(name + " поставил паузу");
                     // Рассылаем текущее состояние с gameRunning=false
