@@ -162,33 +162,35 @@ public class HelloController {
     // ПАНЕЛЬ ИГРОКОВ СПРАВА
     // ══════════════════════════════════════════════════════
 
+    private static final String CARD_STYLE_ME =
+            "-fx-padding: 8; -fx-background-color: #d0e8ff; " +
+                    "-fx-border-color: #3399ff; -fx-border-radius: 4; -fx-background-radius: 4;";
+
+    private static final String CARD_STYLE_OTHER =
+            "-fx-padding: 8; -fx-background-color: white; " +
+                    "-fx-border-color: #cccccc; -fx-border-radius: 4; -fx-background-radius: 4;";
+
     private void updatePlayersPanel(NetworkGameState state) {
-        playersList.getChildren().clear();
-
         if (state.players == null) return;
+        playersList.getChildren().clear();
+        state.players.forEach(p -> playersList.getChildren().add(buildPlayerCard(p)));
+    }
 
-        for (NetworkGameState.PlayerInfo p : state.players) {
-            // Карточка одного игрока
-            VBox card = new VBox(3);
-            card.setStyle(
-                    p.name.equals(myName)
-                            ? "-fx-padding: 8; -fx-background-color: #d0e8ff; " +
-                            "-fx-border-color: #3399ff; -fx-border-radius: 4; -fx-background-radius: 4;"
-                            : "-fx-padding: 8; -fx-background-color: white; " +
-                            "-fx-border-color: #cccccc; -fx-border-radius: 4; -fx-background-radius: 4;"
-            );
+    private VBox buildPlayerCard(NetworkGameState.PlayerInfo p) {
+        boolean isMe = p.name.equals(myName);
+        VBox card = new VBox(3);
+        card.setStyle(isMe ? CARD_STYLE_ME : CARD_STYLE_OTHER);
 
-            Label nameLabel  = new Label("👤 " + p.name +
-                    (p.name.equals(myName) ? " (вы)" : ""));
-            Label scoreLabel = new Label("Счёт: " + p.score);
-            Label shotsLabel = new Label("Выстрелов: " + p.shots);
-            Label readyLabel = new Label(p.ready ? "✅ Готов" : "⏳ Ожидает");
+        Label name  = new Label((isMe ? "👤 " : "") + p.name + (isMe ? " (вы)" : ""));
+        name.setStyle("-fx-font-weight: bold;");
 
-            nameLabel.setStyle("-fx-font-weight: bold;");
-
-            card.getChildren().addAll(nameLabel, scoreLabel, shotsLabel, readyLabel);
-            playersList.getChildren().add(card);
-        }
+        card.getChildren().addAll(
+                name,
+                new Label("Счёт: "      + p.score),
+                new Label("Выстрелов: " + p.shots),
+                new Label(p.ready       ? "✅ Готов" : "⏳ Ожидает")
+        );
+        return card;
     }
 
     // ══════════════════════════════════════════════════════

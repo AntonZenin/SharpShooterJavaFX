@@ -35,6 +35,7 @@ public class GameServer {
     private Thread gameThread;
 
     private volatile boolean gamePaused = false;
+    private final Object pauseLock = new Object();
 
     // -------------------------------------------------------
     // Запуск сервера
@@ -97,7 +98,7 @@ public class GameServer {
             for (ClientHandler c : clients) {
                 c.score = 0;
                 c.shots = 0;
-                //c.ready = false; // сбросим чтобы после победы снова нужно было подтвердить
+
             }
         }
 
@@ -114,12 +115,25 @@ public class GameServer {
         }
 
         gameRunning = true;
+        gamePaused  = false;
         System.out.println("Игра началась!");
 
-        // Игровой поток — 100 обновлений в секунду
         gameThread = new Thread(() -> {
             while (gameRunning) {
                 tick();
+
+                // Пауза через wait/notify — поток спит, не тратит ресурсы
+                synchronized (pauseLock) {
+                    if (gamePaused) {
+                        try {
+                            pauseLock.wait();
+                        } catch (InterruptedException e) {
+                            return;
+                        }
+                        gamePaused = false;
+                    }
+                }
+
                 try { Thread.sleep(10); }
                 catch (InterruptedException e) { return; }
             }
@@ -208,7 +222,7 @@ public class GameServer {
         state.nearY = nearTarget.getY();
         state.farX  = farTarget.getX();
         state.farY  = farTarget.getY();
-        state.gameRunning = gameRunning;
+        state.gameRunning = gameRunning && !gamePaused;
 
         // Стрелы
         state.arrows = new ArrayList<>();
@@ -280,21 +294,6 @@ public class GameServer {
             }
         }
 
-        private void resumeGame() {
-            gameRunning = true;
-            System.out.println("Игра возобновлена");
-
-            gameThread = new Thread(() -> {
-                while(gameRunning) {
-                    tick();
-                    try { Thread.sleep(10); }
-                    catch (InterruptedException e) { return; }
-                }
-            });
-            gameThread.setDaemon(true);
-            gameThread.start();
-        }
-
         // Разбираем входящее сообщение от клиента
         private void handleMessage(String json) {
             Message msg = gson.fromJson(json, Message.class);
@@ -324,12 +323,15 @@ public class GameServer {
                     System.out.println(name + " готов");
 
                     if (gamePaused) {
+                        // Снятие паузы — будим спящий поток
                         gamePaused = false;
-                        resumeGame();
+
+                        synchronized (pauseLock) {
+                            pauseLock.notifyAll();
+                        }
                     } else {
                         checkAllReady();
                     }
-
                 }
 
                 case SHOOT -> {
@@ -344,7 +346,7 @@ public class GameServer {
 
                 case PAUSE -> {
                     if (!gameRunning) return;
-                    gameRunning = false;
+
                     gamePaused = true;
                     ready = false; // чтобы снять паузу нужно снова нажать READY
                     System.out.println(name + " поставил паузу");
