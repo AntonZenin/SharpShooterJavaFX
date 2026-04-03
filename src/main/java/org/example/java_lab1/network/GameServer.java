@@ -36,6 +36,7 @@ public class GameServer {
 
     private volatile boolean gamePaused = false;
     private final Object pauseLock = new Object();
+    private String pausedBy = null; // кто поставил паузу
 
     // -------------------------------------------------------
     // Запуск сервера
@@ -203,10 +204,14 @@ public class GameServer {
                 if (c.score >= WIN_SCORE) {
                     gameRunning = false;
                     System.out.println("Победитель: " + c.name);
-                    broadcast(new Message(MessageType.GAME_OVER, c.name));
+
                     for (ClientHandler p : clients) {
                         p.ready = false;
                     }
+                    broadcast(new Message(MessageType.GAME_STATE, buildState()));
+
+                    broadcast(new Message(MessageType.GAME_OVER, c.name));
+
                     return;
                 }
             }
@@ -323,12 +328,15 @@ public class GameServer {
                     System.out.println(name + " готов");
 
                     if (gamePaused) {
-                        // Снятие паузы — будим спящий поток
-                        gamePaused = false;
-
-                        synchronized (pauseLock) {
-                            pauseLock.notifyAll();
+                        boolean allReady = clients.stream().allMatch(c -> c.ready);
+                        if (allReady) {
+                            pausedBy = null;
+                            gamePaused = false;
+                            synchronized (pauseLock) {
+                                pauseLock.notifyAll();
+                            }
                         }
+                        broadcast(new Message(MessageType.GAME_STATE, buildState()));
                     } else {
                         checkAllReady();
                     }
@@ -345,12 +353,11 @@ public class GameServer {
                 }
 
                 case PAUSE -> {
-                    if (!gameRunning) return;
-
+                    if (!gameRunning || gamePaused) return;
                     gamePaused = true;
-                    ready = false; // чтобы снять паузу нужно снова нажать READY
+                    pausedBy = name;
+                    ready = false; // сбрасываем готовность только тому кто нажал паузу
                     System.out.println(name + " поставил паузу");
-                    // Рассылаем текущее состояние с gameRunning=false
                     broadcast(new Message(MessageType.GAME_STATE, buildState()));
                 }
             }

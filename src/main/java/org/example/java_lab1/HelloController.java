@@ -35,8 +35,7 @@ public class HelloController {
     // Стрелы: имя игрока → его стрела на экране
     private final Map<String, Polygon> arrowShapes = new HashMap<>();
 
-    // ── Флаг паузы (для кнопки) ───────────────────────────
-    private boolean paused = false;
+
 
     // ──────────────────────────────────────────────────────
     @FXML
@@ -147,14 +146,6 @@ public class HelloController {
             // Обновляем панель игроков справа
             updatePlayersPanel(state);
 
-            // Кнопка паузы
-            if (!state.gameRunning) {
-                pauseButton.setText("Продолжить");
-                paused = true;
-            } else {
-                pauseButton.setText("Пауза");
-                paused = false;
-            }
         });
     }
 
@@ -202,8 +193,15 @@ public class HelloController {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Игра завершена");
             alert.setHeaderText("Победитель: " + winner);
-            alert.setContentText("Нажми OK и подтверди готовность чтобы сыграть снова.");
+            alert.setContentText("Нажми 'готов', чтобы сыграть снова.");
             alert.showAndWait();
+
+            gameField.lookupAll(".button").forEach(node -> {
+                Button btn = (Button) node;
+                if (btn.getText().equals("Готов")) {
+                    btn.setStyle("-fx-background-color: #3399ff; -fx-text-fill: white;");
+                }
+            });
         });
     }
 
@@ -215,6 +213,13 @@ public class HelloController {
     public void onReady() {
         if (connection != null && connection.isConnected()) {
             connection.sendReady();
+            // Сбрасываем подсветку кнопки
+            gameField.lookupAll(".button").forEach(node -> {
+                Button btn = (Button) node;
+                if (btn.getText().equals("Готов")) {
+                    btn.setStyle("");
+                }
+            });
         }
     }
 
@@ -228,15 +233,7 @@ public class HelloController {
     @FXML
     public void onPauseGame() {
         if (connection == null || !connection.isConnected()) return;
-        if (paused) {
-            connection.sendReady(); // снимаем паузу через READY
-            pauseButton.setText("Пауза");
-            paused = false;
-        } else {
-            connection.sendPause();
-            pauseButton.setText("Продолжить");
-            paused = true;
-        }
+        connection.sendPause();
     }
 
     @FXML
