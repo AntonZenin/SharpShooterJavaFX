@@ -35,6 +35,10 @@ public class HelloController {
     // Стрелы: имя игрока → его стрела на экране
     private final Map<String, Polygon> arrowShapes = new HashMap<>();
 
+    private boolean gameRunning = false;
+    private boolean paused = false;
+    private boolean readySent = false;
+
 
 
     // ──────────────────────────────────────────────────────
@@ -143,6 +147,20 @@ public class HelloController {
                 }
             }
 
+            if (state.gameRunning && !gameRunning) {
+                readySent = false;
+            }
+
+            // paused = true только если игра уже была запущена и вдруг остановилась
+            // (а не просто ещё не началась)
+            if (!state.gameRunning && gameRunning) {
+                paused = true;  // игра шла и встала — это пауза
+            } else if (state.gameRunning) {
+                paused = false; // игра идёт — паузы нет
+            }
+
+            gameRunning = state.gameRunning;
+
             // Обновляем панель игроков справа
             updatePlayersPanel(state);
 
@@ -190,6 +208,7 @@ public class HelloController {
 
     private void onGameOver(String winner) {
         Platform.runLater(() -> {
+            readySent = false;
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Игра завершена");
             alert.setHeaderText("Победитель: " + winner);
@@ -211,16 +230,18 @@ public class HelloController {
 
     @FXML
     public void onReady() {
-        if (connection != null && connection.isConnected()) {
-            connection.sendReady();
-            // Сбрасываем подсветку кнопки
-            gameField.lookupAll(".button").forEach(node -> {
-                Button btn = (Button) node;
-                if (btn.getText().equals("Готов")) {
-                    btn.setStyle("");
-                }
-            });
-        }
+        if (connection == null || !connection.isConnected()) return;
+        if (gameRunning && !paused) return;
+        if (readySent) return;
+
+        readySent = true;
+        connection.sendReady();
+        gameField.lookupAll(".button").forEach(node -> {
+            Button btn = (Button) node;
+            if (btn.getText().equals("Готов")) {
+                btn.setStyle("");
+            }
+        });
     }
 
     @FXML
