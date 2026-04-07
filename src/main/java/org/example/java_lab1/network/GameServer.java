@@ -24,6 +24,8 @@ public class GameServer {
     private final List<ClientHandler> clients =
             Collections.synchronizedList(new ArrayList<>());
 
+    private final Map<String, Double> playerYPositions = new HashMap<>();
+
     // Игровые объекты — трогает только игровой поток
     private Target nearTarget;
     private Target farTarget;
@@ -109,8 +111,14 @@ public class GameServer {
 
         // Создаём стрелы для каждого игрока
         arrows.clear();
+        playerYPositions.clear();
         synchronized (clients) {
-            for (ClientHandler c : clients) {
+            int count = clients.size();
+            double step = FIELD_H / (count + 1);
+            for (int i = 0; i < count; i++) {
+                ClientHandler c = clients.get(i);
+                double playerY = step * (i + 1);
+                playerYPositions.put(c.name, playerY);
                 arrows.put(c.name, new Arrow());
             }
         }
@@ -343,11 +351,12 @@ public class GameServer {
                 }
 
                 case SHOOT -> {
-                    if (!gameRunning) return;
+                    if (!gameRunning || gamePaused) return;
                     Arrow arrow = arrows.get(name);
                     if (arrow != null && !arrow.isActive()) {
                         shots++;
-                        arrow.shoot(65, FIELD_H / 2);
+                        double playerY = playerYPositions.getOrDefault(name, FIELD_H / 2);
+                        arrow.shoot(65, playerY);
                         System.out.println(name + " выстрелил");
                     }
                 }

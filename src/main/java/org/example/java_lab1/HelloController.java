@@ -24,6 +24,7 @@ public class HelloController {
     @FXML private Pane      gameField;
     @FXML private Button    pauseButton;
     @FXML private VBox      playersList;   // панель справа
+    @FXML private Pane playersPane; // жёлтая панель с треугольниками
 
     // ── Сетевой слой ───────────────────────────────────────
     private ServerConnection connection;
@@ -38,6 +39,7 @@ public class HelloController {
     private boolean gameRunning = false;
     private boolean paused = false;
     private boolean readySent = false;
+
 
 
 
@@ -163,6 +165,7 @@ public class HelloController {
 
             // Обновляем панель игроков справа
             updatePlayersPanel(state);
+            updatePlayerTriangles(state);
 
         });
     }
@@ -183,6 +186,32 @@ public class HelloController {
         if (state.players == null) return;
         playersList.getChildren().clear();
         state.players.forEach(p -> playersList.getChildren().add(buildPlayerCard(p)));
+    }
+
+    private void updatePlayerTriangles(NetworkGameState state) {
+        playersPane.getChildren().clear();
+        if (state.players == null) return;
+
+        int count = state.players.size();
+        double panelHeight = 460;
+        // Равномерно распределяем треугольники по высоте панели
+        double step = panelHeight / (count + 1);
+
+        for (int i = 0; i < count; i++) {
+            NetworkGameState.PlayerInfo p = state.players.get(i);
+            double y = step * (i + 1); // позиция по вертикали
+
+            // Треугольник-стрелка вправо: как на картинке
+            Polygon triangle = new Polygon(0.0, -15.0, 30.0, 0.0, 0.0, 15.0);
+
+            // Свой треугольник — оранжевый, чужие — синие (как на картинке)
+            triangle.setFill(p.name.equals(myName) ? Color.ORANGERED : Color.BLUE);
+
+            triangle.setLayoutX(20); // отступ от левого края панели
+            triangle.setLayoutY(y);
+
+            playersPane.getChildren().add(triangle);
+        }
     }
 
     private VBox buildPlayerCard(NetworkGameState.PlayerInfo p) {

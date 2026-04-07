@@ -39,6 +39,11 @@
 
     <HBox fx:id="gameScreen" visible="false">
 
+        <!-- Жёлтая панель с треугольниками игроков -->
+        <Pane fx:id="playersPane"
+              prefWidth="80" prefHeight="460"
+              style="-fx-background-color: #FFD700;"/>
+
         <!-- Игровое поле -->
         <VBox>
             <Pane fx:id="gameField"
