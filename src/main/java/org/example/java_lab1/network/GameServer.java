@@ -11,13 +11,13 @@ import java.util.concurrent.*;
 
 public class GameServer {
 
-    private static final int PORT         = 12345;
+    private static final int PORT         = 12345; //порт слушанья сервера
     private static final int MAX_PLAYERS  = 4;
     private static final int WIN_SCORE    = 6;
     private static final double FIELD_W   = 650;
     private static final double FIELD_H   = 460;
 
-    // Gson — один экземпляр на всё, он thread-safe
+    // Gson — один экземпляр на всё, он потокобезопасный
     private final Gson gson = new Gson();
 
     // Список подключённых клиентов, синхронизированный список потокобезопасен
@@ -37,34 +37,34 @@ public class GameServer {
     private Thread gameThread;
 
     private volatile boolean gamePaused = false;
-    private final Object pauseLock = new Object();
+    private final Object pauseLock = new Object(); //для wait/notify()
     private String pausedBy = null; // кто поставил паузу
 
     // -------------------------------------------------------
     // Запуск сервера
     // -------------------------------------------------------
     public void start() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(PORT);
+        ServerSocket serverSocket = new ServerSocket(PORT); // слушает порт и ждёт входящих подключений
         System.out.println("Сервер запущен на порту " + PORT);
 
         // Принимаем подключения в отдельном потоке чтобы не блокировать main
         Thread acceptThread = new Thread(() -> {
             while (true) {
                 try {
-                    Socket socket = serverSocket.accept();
+                    Socket socket = serverSocket.accept(); // блокирующий вызов — ждём подключения
                     if (clients.size() >= MAX_PLAYERS) {
                         // Уже максимум игроков — сразу отказываем
                         rejectConnection(socket);
                     } else {
-                        ClientHandler handler = new ClientHandler(socket);
-                        handler.start();
+                        ClientHandler handler = new ClientHandler(socket); //игрок подключился
+                        handler.start(); // запускаем поток для нового клиента
                     }
                 } catch (IOException e) {
                     System.out.println("Ошибка приёма подключения: " + e.getMessage());
                 }
             }
         });
-        acceptThread.setDaemon(true);
+        acceptThread.setDaemon(true); // поток-демон — завершится когда закроется приложение
         acceptThread.start();
     }
 
@@ -92,6 +92,11 @@ public class GameServer {
         }
     }
 
+    //на примере стрелы:
+    //startGame() создаёт стрелы,
+    // SHOOT активирует стрелу (arrow.shoot()),
+    // buildState() читает позицию летящей стрелы и передаёт клиенту.
+
     // -------------------------------------------------------
     // Запуск игры
     // -------------------------------------------------------
@@ -99,8 +104,8 @@ public class GameServer {
         // Сбрасываем очки и выстрелы всех игроков
         synchronized (clients) {
             for (ClientHandler c : clients) {
-                c.score = 0;
-                c.shots = 0;
+                c.score = 0; // сброс очков
+                c.shots = 0; // сброс выстрелов
 
             }
         }
@@ -109,17 +114,17 @@ public class GameServer {
         nearTarget = new Target(FIELD_W * 0.6,  FIELD_H / 2, 2, 25);
         farTarget  = new Target(FIELD_W * 0.85, FIELD_H / 2, 4, 12);
 
-        // Создаём стрелы для каждого игрока
+        // Считаем Y позицию для каждого игрока — равномерно по высоте поля
         arrows.clear();
         playerYPositions.clear();
         synchronized (clients) {
             int count = clients.size();
-            double step = FIELD_H / (count + 1);
-            for (int i = 0; i < count; i++) {
+            double step = FIELD_H / (count + 1); //шаг между игроками
+            for (int i = 0; i < count; i++) { //распредление игроков по полу слева
                 ClientHandler c = clients.get(i);
                 double playerY = step * (i + 1);
                 playerYPositions.put(c.name, playerY);
-                arrows.put(c.name, new Arrow());
+                arrows.put(c.name, new Arrow()); //создание стрелы для игрока
             }
         }
 
@@ -129,7 +134,7 @@ public class GameServer {
 
         gameThread = new Thread(() -> {
             while (gameRunning) {
-                tick();
+                tick(); //один шаг игры
 
                 // Пауза через wait/notify — поток спит, не тратит ресурсы
                 synchronized (pauseLock) {
@@ -165,17 +170,17 @@ public class GameServer {
                 Arrow arrow = arrows.get(c.name);
                 if (arrow == null) continue;
                 arrow.next(FIELD_W);
-                checkHit(c, arrow);
+                checkHit(c, arrow); //проверка попадания
             }
         }
 
-        // Рассылаем состояние всем клиентам
-        NetworkGameState state = buildState();
-        broadcast(new Message(MessageType.GAME_STATE, state));
+
+        NetworkGameState state = buildState(); // создаем состояние для рассылки
+        broadcast(new Message(MessageType.GAME_STATE, state)); // Рассылаем состояние всем клиентам
 
         // Проверяем победителя
         checkWinner();
-    }
+    } //Сервер — единственный кто двигает объекты, клиенты только получают готовые координаты и рисуют их.
 
     // -------------------------------------------------------
     // Проверка попадания стрелы конкретного игрока
@@ -183,7 +188,7 @@ public class GameServer {
     private void checkHit(ClientHandler player, Arrow arrow) {
         if (!arrow.isActive()) return;
 
-        double dNear = dist(arrow.getX(), arrow.getY(),
+        double dNear = dist(arrow.getX(), arrow.getY(), // Расстояние по теореме Пифагора
                 nearTarget.getX(), nearTarget.getY());
         double dFar  = dist(arrow.getX(), arrow.getY(),
                 farTarget.getX(),  farTarget.getY());
@@ -273,6 +278,8 @@ public class GameServer {
     // -------------------------------------------------------
     // Обработчик одного клиента — каждый в своём потоке
     // -------------------------------------------------------
+    // Каждый подключившийся игрок — это отдельный ClientHandler в отдельном потоке.
+    // Он хранит всю информацию об игроке и читает сообщения от него в бесконечном цикле.
     private class ClientHandler extends Thread {
         private final Socket socket;
         private PrintWriter  out;
@@ -286,8 +293,12 @@ public class GameServer {
             this.socket = socket;
         }
 
+        //run - метод, который вызывается, когда поток стартует через start()
+        // Внутри него бесконечный цикл который читает сообщения от клиента:
+
         @Override
         public void run() {
+            // Открываем потоки чтения и записи для сокета
             try (BufferedReader in = new BufferedReader(
                     new InputStreamReader(socket.getInputStream()))) {
 
@@ -295,8 +306,8 @@ public class GameServer {
                         new OutputStreamWriter(socket.getOutputStream()), true);
 
                 String line;
-                while ((line = in.readLine()) != null) {
-                    handleMessage(line);
+                while ((line = in.readLine()) != null) { //чтение строк от клиента
+                    handleMessage(line);                // обработка сообщений
                 }
 
             } catch (IOException e) {
@@ -336,12 +347,13 @@ public class GameServer {
                     System.out.println(name + " готов");
 
                     if (gamePaused) {
+                        // Снять паузу можно только если ВСЕ игроки готовы
                         boolean allReady = clients.stream().allMatch(c -> c.ready);
                         if (allReady) {
                             pausedBy = null;
                             gamePaused = false;
                             synchronized (pauseLock) {
-                                pauseLock.notifyAll();
+                                pauseLock.notifyAll();  // будим спящий игровой поток
                             }
                         }
                         broadcast(new Message(MessageType.GAME_STATE, buildState()));
@@ -356,7 +368,7 @@ public class GameServer {
                     if (arrow != null && !arrow.isActive()) {
                         shots++;
                         double playerY = playerYPositions.getOrDefault(name, FIELD_H / 2);
-                        arrow.shoot(65, playerY);
+                        arrow.shoot(65, playerY);  // стреляем с высоты своего треугольника
                         System.out.println(name + " выстрелил");
                     }
                 }
@@ -377,3 +389,5 @@ public class GameServer {
         }
     }
 }
+//один игровой поток управляет игрой, каждый клиент имеет свой поток для чтения сообщений
+// общение между ними через synchronized блоки и volatile флаги

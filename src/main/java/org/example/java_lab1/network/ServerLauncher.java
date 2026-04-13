@@ -4,7 +4,7 @@ public class ServerLauncher {
     public static void main(String[] args) throws Exception {
         GameServer server = new GameServer();
         server.start();
-        System.out.println("Сервер работает. Нажми Enter для остановки.");
+        System.out.println("Сервер работает. Нажмите Enter для остановки.");
         System.in.read();
     }
 }
