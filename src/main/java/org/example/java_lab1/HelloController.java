@@ -273,12 +273,14 @@ public class HelloController {
         });
     }
 
-    @FXML
+    /*@FXML
     public void onStopGame() {
         if (connection != null) {
             connection.disconnect();
         }
-    }
+    }*/
+
+    //<Button text="Остановить"   onAction="#onStopGame"/>
 
     @FXML
     public void onPauseGame() {
