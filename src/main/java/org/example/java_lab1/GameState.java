@@ -1,4 +1,4 @@
-package org.example.java_lab1;
+/*package org.example.java_lab1;
 
 // Класс хранит текущее состояние всех игровых объектов
 // упаковать все координаты в один объект и передавать между потоками атомарно
@@ -36,4 +36,4 @@ public class GameState {
 //next() считает позиции → записывает в GameState → AtomicReference.set()
 //
 //AnimationTimer (JavaFX поток):
-//AtomicReference.get() → читает GameState → двигает кружки на экране
+//AtomicReference.get() → читает GameState → двигает кружки на экране*/

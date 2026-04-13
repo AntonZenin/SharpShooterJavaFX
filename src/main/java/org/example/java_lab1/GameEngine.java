@@ -1,4 +1,4 @@
-package org.example.java_lab1;
+/*package org.example.java_lab1;
 
 import javafx.animation.AnimationTimer;
 import javafx.scene.layout.Pane;
@@ -222,4 +222,4 @@ public class GameEngine {
     public boolean isRunning()     { return isRun; }
     public boolean isPaused()      { return isPause; }
     public boolean isArrowActive() { return arrow.isActive(); }
-}
+}*/
