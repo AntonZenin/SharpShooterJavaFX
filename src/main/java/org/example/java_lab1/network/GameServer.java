@@ -300,10 +300,10 @@ public class GameServer {
         public void run() {
             // Открываем потоки чтения и записи для сокета
             try (BufferedReader in = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream()))) {
+                    new InputStreamReader(socket.getInputStream()))) { //Чтение клиента
 
                 out = new PrintWriter(
-                        new OutputStreamWriter(socket.getOutputStream()), true);
+                        new OutputStreamWriter(socket.getOutputStream()), true); //пишем клиенту
 
                 String line;
                 while ((line = in.readLine()) != null) { //чтение строк от клиента

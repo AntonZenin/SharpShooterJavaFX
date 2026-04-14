@@ -14,6 +14,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+//контроллер JavaFX — он связывает game-view.fxml (UI) и ServerConnection (сеть)
+// Когда пользователь нажимает кнопку — контроллер отправляет команду серверу.
+// Когда приходит состояние от сервера — контроллер обновляет UI.
+
 public class HelloController {
 
     // ── FXML элементы ──────────────────────────────────────
@@ -28,7 +32,7 @@ public class HelloController {
 
     // ── Сетевой слой ───────────────────────────────────────
     private ServerConnection connection;
-    private String myName;
+    private String myName; // имя текущего игрока
 
     // ── Визуальные объекты на игровом поле ────────────────
     private Circle  nearCircle;
@@ -38,12 +42,8 @@ public class HelloController {
 
     private boolean gameRunning = false;
     private boolean paused = false;
-    private boolean readySent = false;
+    private boolean readySent = false; // нажал ли уже "Готов"
 
-
-
-
-    // ──────────────────────────────────────────────────────
     @FXML
     public void initialize() {
         // Показываем экран подключения, игровое поле скрыто
@@ -67,7 +67,7 @@ public class HelloController {
         connection = new ServerConnection();
 
         // Подписываемся на события от сервера
-        connection.setOnJoinOk(this::onJoinOk);
+        connection.setOnJoinOk(this::onJoinOk); //те сообщения которые могут быть прочитаны от сервера
         connection.setOnJoinFail(this::onJoinFail);
         connection.setOnGameState(this::onGameState);
         connection.setOnGameOver(this::onGameOver);
@@ -80,9 +80,11 @@ public class HelloController {
         }
     }
 
+    // колбэки от сервера
+
     // Сервер принял нас
     private void onJoinOk() {
-        Platform.runLater(() -> {
+        Platform.runLater(() -> {                   // UI обновляем только в JavaFX потоке!
             // Переключаемся на игровой экран
             connectScreen.setVisible(false);
             gameScreen.setVisible(true);
@@ -115,8 +117,8 @@ public class HelloController {
     private Polygon getOrCreateArrow(String playerName) {
         return arrowShapes.computeIfAbsent(playerName, name -> {
             Polygon arrow = new Polygon(0.0, -6.0, 20.0, 0.0, 0.0, 6.0);
-            // Своя стрела — синяя, чужие — оранжевые
-            arrow.setFill(name.equals(myName) ? Color.BLUE : Color.ORANGE);
+            // Своя стрела — оранжевая, чужие — синие
+            arrow.setFill(name.equals(myName) ? Color.ORANGE : Color.BLUE);
             arrow.setVisible(false);
             gameField.getChildren().add(arrow);
             return arrow;
@@ -124,7 +126,7 @@ public class HelloController {
     }
 
     // ══════════════════════════════════════════════════════
-    // ОБНОВЛЕНИЕ СОСТОЯНИЯ ИГРЫ (приходит от сервера ~100 раз/сек)
+    // ОБНОВЛЕНИЕ СОСТОЯНИЯ ИГРЫ (приходит от сервера ~100 раз/сек) (визуал)
     // ══════════════════════════════════════════════════════
 
     private void onGameState(NetworkGameState state) {
@@ -201,7 +203,7 @@ public class HelloController {
             NetworkGameState.PlayerInfo p = state.players.get(i);
             double y = step * (i + 1); // позиция по вертикали
 
-            // Треугольник-стрелка вправо: как на картинке
+            // Треугольник-стрелка вправо
             Polygon triangle = new Polygon(0.0, -15.0, 30.0, 0.0, 0.0, 15.0);
 
             // Свой треугольник — оранжевый, чужие — синие (как на картинке)
@@ -295,3 +297,7 @@ public class HelloController {
         }
     }
 }
+
+// Сам контроллер не знает ничего про сокеты и JSON — это всё в ServerConnection.
+// И не знает ничего про игровую логику — это всё на сервере.
+// Он только рисует то что пришло и передаёт команды пользователя дальше.

@@ -8,14 +8,18 @@ import java.io.*;
 import java.net.Socket;
 import java.util.function.Consumer;
 
+// класс который отвечает за всё общение клиента с сервером
+// открывает подключение к серверу
+
 public class ServerConnection {
 
     private static final int PORT = 12345;
     private final Gson gson = new Gson();
 
-    private Socket socket;
-    private PrintWriter out;
+    private Socket socket; // подключение к серверу
+    private PrintWriter out; // для отправки JSON строк серверу.
 
+    // колбэк - связь между HelloController (UI) и ServerConnection
     // Колбэки — вызываются когда приходит сообщение от сервера.
     // HelloController подпишется на них чтобы обновлять UI.
     private Consumer<NetworkGameState> onGameState;  // новое состояние игры
@@ -38,7 +42,7 @@ public class ServerConnection {
         socket = new Socket(host, PORT);
 
         out = new PrintWriter(
-                new OutputStreamWriter(socket.getOutputStream()), true);
+                new OutputStreamWriter(socket.getOutputStream()), true); //запись
 
         // Поток чтения — слушаем сервер постоянно
         Thread readerThread = new Thread(() -> {
@@ -46,7 +50,7 @@ public class ServerConnection {
                     new InputStreamReader(socket.getInputStream()))) {
 
                 String line;
-                while ((line = in.readLine()) != null) {
+                while ((line = in.readLine()) != null) { //чтение от сервера
                     handleMessage(line);
                 }
 
@@ -123,18 +127,6 @@ public class ServerConnection {
         }
     }
 
-    // -------------------------------------------------------
-    // Отключение
-    // -------------------------------------------------------
-    public void disconnect() {
-        try {
-            if (socket != null && !socket.isClosed()) {
-                socket.close();
-            }
-        } catch (IOException e) {
-            System.out.println("Ошибка при отключении: " + e.getMessage());
-        }
-    }
 
     public boolean isConnected() {
         return socket != null && socket.isConnected() && !socket.isClosed();
