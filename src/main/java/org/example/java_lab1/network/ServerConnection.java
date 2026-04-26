@@ -107,10 +107,12 @@ public class ServerConnection {
             }
 
             case LEADERBOARD_RESPONSE -> {
+                System.out.println("Клиент получил LEADERBOARD_RESPONSE");
                 List<LeaderboardEntry> entries = gson.fromJson(
                         obj.get("data"),
                         new com.google.gson.reflect.TypeToken<List<LeaderboardEntry>>(){}.getType()
                 );
+                System.out.println("Записей в таблице: " + entries.size()); // добавь
                 if (onLeaderboard != null) onLeaderboard.accept(entries);
             }
         }
@@ -132,7 +134,7 @@ public class ServerConnection {
     }
 
     public void sendLeaderboardRequest() {
-        send(new Message(MessageType.LEADERBOARD_RESPONSE));
+        send(new Message(MessageType.LEADERBOARD_REQUEST));
     }
 
     // -------------------------------------------------------

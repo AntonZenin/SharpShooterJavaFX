@@ -294,8 +294,8 @@ public class HelloController {
 
     @FXML
     public void onLeaderboard() {
+        System.out.println("Кнопка таблицы нажата");
         if (connection == null || !connection.isConnected()) return;
-        // По требованию — при просмотре таблицы игра ставится на паузу
         if (gameRunning && !paused) {
             connection.sendPause();
         }
@@ -303,6 +303,7 @@ public class HelloController {
     }
 
     private void onLeaderboard(List<LeaderboardEntry> entries) {
+        System.out.println("onLeaderboard вызван, записей: " + entries.size());
         Platform.runLater(() -> showLeaderboard(entries));
     }
 
