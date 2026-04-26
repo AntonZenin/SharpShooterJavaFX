@@ -315,6 +315,17 @@ public class GameServer {
             } finally {
                 clients.remove(this);
                 System.out.println("Игрок удалён: " + name);
+                if (clients.isEmpty()) {
+                    gameRunning = false;
+                    gamePaused = false;
+                    arrows.clear();
+                    playerYPositions.clear();
+                    if (gameThread != null) {
+                        gameThread.interrupt();
+                        gameThread = null;
+                    }
+                    System.out.println("Все игроки вышли, сервер сброшен");
+                }
             }
         }
 
