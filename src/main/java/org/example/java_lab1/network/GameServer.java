@@ -3,11 +3,16 @@ package org.example.java_lab1.network;
 import com.google.gson.Gson;
 import org.example.java_lab1.Arrow;
 import org.example.java_lab1.Target;
+import org.example.java_lab1.db.Player;
+import org.example.java_lab1.db.PlayerDao;
+import org.example.java_lab1.network.LeaderboardEntry;
+
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class GameServer {
 
@@ -25,6 +30,8 @@ public class GameServer {
             Collections.synchronizedList(new ArrayList<>());
 
     private final Map<String, Double> playerYPositions = new HashMap<>();
+
+    private final PlayerDao playerDao = new PlayerDao();
 
     // Игровые объекты — трогает только игровой поток
     private Target nearTarget;
@@ -218,6 +225,13 @@ public class GameServer {
                     gameRunning = false;
                     System.out.println("Победитель: " + c.name);
 
+                    playerDao.addWin(c.name);
+                    c.wins = playerDao.getLeaderboard().stream()
+                            .filter(p -> p.getName().equals(c.name))
+                            .mapToInt(p -> p.getWins())
+                            .findFirst()
+                            .orElse(c.wins + 1);
+
                     for (ClientHandler p : clients) {
                         p.ready = false;
                     }
@@ -257,7 +271,7 @@ public class GameServer {
             state.players = new ArrayList<>();
             for (ClientHandler c : clients) {
                 state.players.add(
-                        new NetworkGameState.PlayerInfo(c.name, c.score, c.shots, c.ready));  // NEED TO FIX
+                        new NetworkGameState.PlayerInfo(c.name, c.score, c.shots, c.ready, c.wins));
             }
         }
         return state;
@@ -288,6 +302,7 @@ public class GameServer {
         int     score = 0;
         int     shots = 0;
         boolean ready = false;
+        int     wins = 0;
 
         ClientHandler(Socket socket) {
             this.socket = socket;
@@ -347,6 +362,11 @@ public class GameServer {
                                 "Имя уже занято")));
                     } else {
                         this.name = requestedName;
+                        playerDao.getLeaderboard().stream()
+                                .filter(p -> p.getName().equals(requestedName))
+                                .findFirst()
+                                .ifPresent(p -> this.wins = p.getWins());
+
                         clients.add(this);
                         send(gson.toJson(new Message(MessageType.JOIN_OK, name)));
                         System.out.println("Игрок подключился: " + name);
@@ -391,6 +411,16 @@ public class GameServer {
                     ready = false; // сбрасываем готовность только тому кто нажал паузу
                     System.out.println(name + " поставил паузу");
                     broadcast(new Message(MessageType.GAME_STATE, buildState()));
+                }
+
+                case LEADERBOARD_REQUEST -> {
+                    List<Player> leaderboard = playerDao.getLeaderboard();
+                    List<LeaderboardEntry> entries = leaderboard.stream()
+                            .map(p -> new LeaderboardEntry(p.getName(), p.getWins()))
+                            .collect(Collectors.toList());
+
+                    send(gson.toJson(new Message(MessageType.LEADERBOARD_RESPONSE, entries)));
+                    System.out.println(name + " запросил таблицу лидеров");
                 }
             }
         }

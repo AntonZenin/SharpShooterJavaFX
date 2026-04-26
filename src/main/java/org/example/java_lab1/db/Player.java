@@ -2,7 +2,7 @@ package org.example.java_lab1.db;
 
 import jakarta.persistence.*;
 
-// Сущность — Java класс который映射ся на таблицу в БД
+
 @Entity
 @Table(name = "players")
 public class Player {
