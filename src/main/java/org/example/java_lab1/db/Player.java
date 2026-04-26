@@ -19,7 +19,6 @@ public class Player {
     @Column(name = "wins", nullable = false)
     private int wins = 0;
 
-    // Конструктор без аргументов — обязателен для Hibernate
     public Player() {}
 
     public Player(String name) {

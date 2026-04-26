@@ -257,7 +257,7 @@ public class GameServer {
             state.players = new ArrayList<>();
             for (ClientHandler c : clients) {
                 state.players.add(
-                        new NetworkGameState.PlayerInfo(c.name, c.score, c.shots, c.ready));
+                        new NetworkGameState.PlayerInfo(c.name, c.score, c.shots, c.ready));  // NEED TO FIX
             }
         }
         return state;

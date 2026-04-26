@@ -36,13 +36,15 @@ public class NetworkGameState {
         public String  name;
         public int     score;
         public int     shots;
-        public boolean ready; // подтвердил ли готовность
+        public boolean ready;
+        public int      wins;
 
-        public PlayerInfo(String name, int score, int shots, boolean ready) {
+        public PlayerInfo(String name, int score, int shots, boolean ready, int wins) {
             this.name  = name;
             this.score = score;
             this.shots = shots;
             this.ready = ready;
+            this.wins = wins;
         }
     }
 }

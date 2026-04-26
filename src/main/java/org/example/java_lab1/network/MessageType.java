@@ -6,10 +6,12 @@ public enum MessageType {
     READY,   // готов начать / снять паузу
     SHOOT,   // выстрел
     PAUSE,   // пауза
+    LEADERBOARD_REQUEST,
 
     // Сервер → Клиент
     JOIN_OK,     // подключение принято
     JOIN_FAIL,   // отказ (data: причина — строка)
     GAME_STATE,  // состояние игры (data: NetworkGameState)
-    GAME_OVER    // игра завершена (data: имя победителя — строка)
+    GAME_OVER,
+    LEADERBOARD_RESPONSE
 }
