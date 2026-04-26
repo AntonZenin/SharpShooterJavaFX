@@ -6,7 +6,9 @@ import com.google.gson.JsonParser;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
 import java.util.function.Consumer;
+import org.example.java_lab1.network.LeaderboardEntry;
 
 // класс который отвечает за всё общение клиента с сервером
 // открывает подключение к серверу
@@ -27,6 +29,8 @@ public class ServerConnection {
     private Consumer<String>           onJoinFail;   // причина отказа
     private Runnable                   onJoinOk;     // успешное подключение
 
+    private Consumer<List<LeaderboardEntry>> onLeaderboard;
+
     // -------------------------------------------------------
     // Установка колбэков (вызывается из HelloController)
     // -------------------------------------------------------
@@ -34,6 +38,7 @@ public class ServerConnection {
     public void setOnGameOver(Consumer<String> cb)            { onGameOver  = cb; }
     public void setOnJoinFail(Consumer<String> cb)            { onJoinFail  = cb; }
     public void setOnJoinOk(Runnable cb)                      { onJoinOk    = cb; }
+    public void setOnLeaderboard(Consumer<List<LeaderboardEntry>> cb) { onLeaderboard = cb;}
 
     // -------------------------------------------------------
     // Подключение к серверу и запуск потока чтения
@@ -100,6 +105,14 @@ public class ServerConnection {
                         : "Неизвестный";
                 if (onGameOver != null) onGameOver.accept(winner);
             }
+
+            case LEADERBOARD_RESPONSE -> {
+                List<LeaderboardEntry> entries = gson.fromJson(
+                        obj.get("data"),
+                        new com.google.gson.reflect.TypeToken<List<LeaderboardEntry>>(){}.getType()
+                );
+                if (onLeaderboard != null) onLeaderboard.accept(entries);
+            }
         }
     }
 
@@ -116,6 +129,10 @@ public class ServerConnection {
 
     public void sendPause() {
         send(new Message(MessageType.PAUSE));
+    }
+
+    public void sendLeaderboardRequest() {
+        send(new Message(MessageType.LEADERBOARD_RESPONSE));
     }
 
     // -------------------------------------------------------

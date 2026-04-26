@@ -9,6 +9,8 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Polygon;
 import org.example.java_lab1.network.NetworkGameState;
 import org.example.java_lab1.network.ServerConnection;
+import org.example.java_lab1.network.LeaderboardEntry;
+import java.util.List;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -71,6 +73,7 @@ public class HelloController {
         connection.setOnJoinFail(this::onJoinFail);
         connection.setOnGameState(this::onGameState);
         connection.setOnGameOver(this::onGameOver);
+        connection.setOnLeaderboard(this::onLeaderboard);
 
         try {
             connection.connect("localhost", myName);
@@ -228,6 +231,7 @@ public class HelloController {
                 name,
                 new Label("Счёт: "      + p.score),
                 new Label("Выстрелов: " + p.shots),
+                new Label("Побед: "     + p.wins),
                 new Label(p.ready       ? "✅ Готов" : "⏳ Ожидает")
         );
         return card;
@@ -275,15 +279,6 @@ public class HelloController {
         });
     }
 
-    /*@FXML
-    public void onStopGame() {
-        if (connection != null) {
-            connection.disconnect();
-        }
-    }*/
-
-    //<Button text="Остановить"   onAction="#onStopGame"/>
-
     @FXML
     public void onPauseGame() {
         if (connection == null || !connection.isConnected()) return;
@@ -295,6 +290,52 @@ public class HelloController {
         if (connection != null && connection.isConnected()) {
             connection.sendShoot();
         }
+    }
+
+    @FXML
+    public void onLeaderboard() {
+        if (connection == null || !connection.isConnected()) return;
+        // По требованию — при просмотре таблицы игра ставится на паузу
+        if (gameRunning && !paused) {
+            connection.sendPause();
+        }
+        connection.sendLeaderboardRequest();
+    }
+
+    private void onLeaderboard(List<LeaderboardEntry> entries) {
+        Platform.runLater(() -> showLeaderboard(entries));
+    }
+
+    private void showLeaderboard(List<LeaderboardEntry> entries) {
+        // Создаём диалог
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Таблица лидеров");
+        dialog.setHeaderText("Лучшие игроки");
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+        // Создаём таблицу
+        TableView<LeaderboardEntry> table = new TableView<>();
+        table.setPrefWidth(300);
+        table.setPrefHeight(300);
+
+        // Колонка имени
+        TableColumn<LeaderboardEntry, String> nameCol = new TableColumn<>("Игрок");
+        nameCol.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(data.getValue().name));
+        nameCol.setPrefWidth(180);
+
+        // Колонка побед
+        TableColumn<LeaderboardEntry, String> winsCol = new TableColumn<>("Побед");
+        winsCol.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(
+                        String.valueOf(data.getValue().wins)));
+        winsCol.setPrefWidth(100);
+
+        table.getColumns().addAll(nameCol, winsCol);
+        table.getItems().addAll(entries);
+
+        dialog.getDialogPane().setContent(table);
+        dialog.showAndWait();
     }
 }
 

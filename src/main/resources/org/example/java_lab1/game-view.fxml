@@ -55,6 +55,7 @@
                 <Button text="Готов"        onAction="#onReady"/>
                 <Button fx:id="pauseButton" text="Пауза" onAction="#onPauseGame"/>
                 <Button text="Выстрел"      onAction="#onShoot"/>
+                <Button text="Таблица лидеров"     onAction="#onLeaderboard"/>
             </HBox>
         </VBox>
 
