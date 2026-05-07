@@ -31,7 +31,7 @@ public class GameServer {
 
     private final Map<String, Double> playerYPositions = new HashMap<>();
 
-    private final PlayerDao playerDao = new PlayerDao();
+    private final PlayerDao playerDao = new PlayerDao(); // создается 1 раз при старте сервера, для работы с БД
 
     // Игровые объекты — трогает только игровой поток
     private Target nearTarget;
@@ -225,7 +225,9 @@ public class GameServer {
                     gameRunning = false;
                     System.out.println("Победитель: " + c.name);
 
-                    playerDao.addWin(c.name);
+                    playerDao.addWin(c.name); // сохраняем победу в БД
+                    // Обновляем кэш wins в ClientHandler
+                    // чтобы сразу показать актуальное число побед клиенту
                     c.wins = playerDao.getLeaderboard().stream()
                             .filter(p -> p.getName().equals(c.name))
                             .mapToInt(p -> p.getWins())
@@ -362,6 +364,7 @@ public class GameServer {
                                 "Имя уже занято")));
                     } else {
                         this.name = requestedName;
+                        // Загружаем wins из БД — вдруг игрок уже играл раньше
                         playerDao.getLeaderboard().stream()
                                 .filter(p -> p.getName().equals(requestedName))
                                 .findFirst()
@@ -414,11 +417,17 @@ public class GameServer {
                 }
 
                 case LEADERBOARD_REQUEST -> {
+                    // получаем таблицу из БД
                     List<Player> leaderboard = playerDao.getLeaderboard();
+
+                    // Конвертируем Player → LeaderboardEntry
+                    // Player — это сущность БД, LeaderboardEntry — это то что отправляем клиенту
+
                     List<LeaderboardEntry> entries = leaderboard.stream()
                             .map(p -> new LeaderboardEntry(p.getName(), p.getWins()))
                             .collect(Collectors.toList());
 
+                    // Отправляем только этому клиенту — не broadcast
                     send(gson.toJson(new Message(MessageType.LEADERBOARD_RESPONSE, entries)));
                     System.out.println(name + " запросил таблицу лидеров");
                 }
