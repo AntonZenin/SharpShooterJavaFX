@@ -1,5 +1,7 @@
 package org.example.java_lab1.network;
 
+// простой контейнер для передачи одной строки таблицы лидеров по сети.
+
 public class LeaderboardEntry {
     public String name;
     public int    wins;
@@ -9,3 +11,5 @@ public class LeaderboardEntry {
         this.wins = wins;
     }
 }
+
+// БД → Player (Hibernate сущность) → LeaderboardEntry (для сети) → клиент

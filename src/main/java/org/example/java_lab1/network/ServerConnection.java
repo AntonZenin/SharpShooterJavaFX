@@ -39,6 +39,7 @@ public class ServerConnection {
     public void setOnJoinFail(Consumer<String> cb)            { onJoinFail  = cb; }
     public void setOnJoinOk(Runnable cb)                      { onJoinOk    = cb; }
     public void setOnLeaderboard(Consumer<List<LeaderboardEntry>> cb) { onLeaderboard = cb;}
+    // колбэк для таблицы лидеров
 
     // -------------------------------------------------------
     // Подключение к серверу и запуск потока чтения
@@ -108,11 +109,12 @@ public class ServerConnection {
 
             case LEADERBOARD_RESPONSE -> {
                 System.out.println("Клиент получил LEADERBOARD_RESPONSE");
+                // Gson не знает заранее что внутри List — нужно подсказать через TypeToken
                 List<LeaderboardEntry> entries = gson.fromJson(
                         obj.get("data"),
                         new com.google.gson.reflect.TypeToken<List<LeaderboardEntry>>(){}.getType()
                 );
-                System.out.println("Записей в таблице: " + entries.size()); // добавь
+                System.out.println("Записей в таблице: " + entries.size());
                 if (onLeaderboard != null) onLeaderboard.accept(entries);
             }
         }

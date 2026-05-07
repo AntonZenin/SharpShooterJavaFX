@@ -296,7 +296,7 @@ public class HelloController {
     public void onLeaderboard() {
         System.out.println("Кнопка таблицы нажата");
         if (connection == null || !connection.isConnected()) return;
-        if (gameRunning && !paused) {
+        if (gameRunning && !paused) { // при просмотре таблицы игра ставится на паузу
             connection.sendPause();
         }
         connection.sendLeaderboardRequest();
@@ -306,6 +306,8 @@ public class HelloController {
         System.out.println("onLeaderboard вызван, записей: " + entries.size());
         Platform.runLater(() -> showLeaderboard(entries));
     }
+
+    //  метод отображения таблицы через диалоговое окно:
 
     private void showLeaderboard(List<LeaderboardEntry> entries) {
         // Создаём диалог
